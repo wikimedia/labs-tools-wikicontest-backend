@@ -1,5 +1,7 @@
 from flask import Flask, render_template, jsonify, request, redirect, session
 from flask_cors import CORS
+from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
 import mwoauth
 import os
 
@@ -27,7 +29,12 @@ app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config.from_object(os.environ['APP_SETTINGS'])
 app.secret_key = os.urandom(50)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# ---------- Database configuration -----------
+db = SQLAlchemy(app)
+from models import Contests
+migrate = Migrate(app, db)
 
 # ----------- OAuth configuration -------------
 consumer_token = mwoauth.ConsumerToken(
@@ -51,7 +58,11 @@ def index():
 
 @app.route('/api/contests', methods=['GET'])
 def contests():
-    pass
+    constests = Contests.query.all()
+    return jsonify({
+        "status": "success",
+        "contests": constests
+    }), 200
 
 
 @app.route('/api/contest/<int:id>', methods=['GET'])

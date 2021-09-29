@@ -15,6 +15,7 @@ class production(config):
     PREFERRED_URL_SCHEME = 'https'
     OAUTH_MWURI = "https://meta.wikimedia.org/w/"
     APP_REDIRECT_URI = "https://wikicontest.toolforge.org"
+    SQLALCHEMY_DATABASE_URI = "mysql+pymysql://username:password@host/wikicontests"
 
 
 class local(config):
@@ -24,3 +25,4 @@ class local(config):
     CONSUMER_SECRET = "eef670ed1e6b3be313c05f957c626fc49dad078c"
     OAUTH_MWURI = "http://localhost/mw135/"
     APP_REDIRECT_URI = "http://127.0.0.1:3000"
+    SQLALCHEMY_DATABASE_URI = "mysql+pymysql://jay:iampassword@localhost/wikicontests"
