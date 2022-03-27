@@ -50,3 +50,17 @@ class Juries(db.Model):
 
     def __repr__(self):
         return '<Jury {}>'.format(self.id)
+
+
+@dataclass
+class Rules(db.Model):
+    id: str
+    contest_id: str
+    rules: dict
+
+    id = db.Column(db.Integer, primary_key=True)
+    contest_id = db.Column(db.Integer, nullable=False)
+    rules = db.Column(db.JSON, nullable=False)
+
+    def __repr__(self):
+        return '<Rule {}>'.format(self.id)
