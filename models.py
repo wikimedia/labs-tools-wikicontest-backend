@@ -64,3 +64,28 @@ class Rules(db.Model):
 
     def __repr__(self):
         return '<Rule {}>'.format(self.id)
+
+
+class Submission(db.Model):
+    id: str
+    contest_id: str
+    article_name: str
+    submission_by: str
+    submission_stats: dict
+    submission_on: datetime
+    assessment_by: str
+    assessment_stats: dict
+    assessment_on: datetime
+
+    id = db.Column(db.Integer, primary_key=True)
+    contest_id = db.Column(db.Integer, nullable=False)
+    article_name = db.Column(db.String(255), nullable=False)
+    submission_by = db.Column(db.String(75), nullable=False)
+    submission_stats = db.Column(db.JSON, nullable=False)
+    submission_on = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
+    assessment_by = db.Column(db.String(75))
+    assessment_stats = db.Column(db.JSON)
+    assessment_on = db.Column(db.DateTime)
+
+    def __repr__(self):
+        return '<Submission {}>'.format(self.id)
