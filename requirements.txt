@@ -4,3 +4,4 @@ flask-migrate
 flask-sqlalchemy
 mwoauth
 pymysql
+python-dateutil

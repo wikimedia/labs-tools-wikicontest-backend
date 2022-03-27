@@ -4,8 +4,9 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 import mwoauth
 import os
+from dateutil import parser
 
-from utils import _str
+from utils import _str, missingData, permissionDenied, somethingWrong
 
 
 app = Flask(__name__)
@@ -58,10 +59,10 @@ def index():
 
 @app.route('/api/contests', methods=['GET'])
 def contests():
-    constests = Contests.query.all()
+    contests = Contests.query.all()
     return jsonify({
         "status": "success",
-        "contests": constests
+        "contests": contests
     }), 200
 
 
@@ -72,7 +73,47 @@ def contest(id):
 
 @app.route('/api/contest/create', methods=['POST'])
 def createContest():
-    pass
+    # Checking logined user
+    currentUser = get_current_user()
+    if currentUser == None:
+        return permissionDenied()
+
+    # Extracting data
+    d = request.get_json()
+    name = d.get("name")
+    description = d.get("description")
+    project = d.get("project")
+    language = d.get("language")
+    startDate = d.get("start_date")
+    endDate = d.get("end_date")
+
+    # Checking necessary data
+    if None in (name, description, project, language, startDate, endDate):
+        return missingData()
+
+    if "" in (name, description, project, language, startDate, endDate):
+        return missingData()
+
+    # Creating contest
+    contest = Contests(
+        name=name,
+        description=description,
+        project=project,
+        language=language,
+        start_date=parser.isoparse(startDate),
+        end_date=parser.isoparse(endDate),
+        created_by=currentUser
+    )
+    try:
+        db.session.add(contest)
+        db.session.commit()
+    except:
+        return somethingWrong()
+
+    return jsonify({
+        "status": "success",
+        "contestId": contest.id
+    }), 201
 
 
 @app.route('/api/contest/<int:id>/edit', methods=['POST'])
