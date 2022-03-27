@@ -31,3 +31,22 @@ class Contests(db.Model):
 
     def __repr__(self):
         return '<Contest {}>'.format(self.id)
+
+
+@dataclass
+class Juries(db.Model):
+    id: str
+    contest_id: str
+    username: str
+    added_at: datetime
+
+    id = db.Column(db.Integer, primary_key=True)
+    contest_id = db.Column(db.Integer, nullable=False)
+    username = db.Column(db.String(75), nullable=False)
+    added_at = db.Column(db.DateTime,
+        nullable=False,
+        default=datetime.utcnow()
+    )
+
+    def __repr__(self):
+        return '<Jury {}>'.format(self.id)
