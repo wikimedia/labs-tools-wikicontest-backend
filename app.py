@@ -6,7 +6,7 @@ import mwoauth
 import os
 from dateutil import parser
 
-from utils import _str, missingData, permissionDenied, somethingWrong
+from utils import _str, missingData, permissionDenied, somethingWrong, defaultRules
 
 
 app = Flask(__name__)
@@ -34,7 +34,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # ---------- Database configuration -----------
 db = SQLAlchemy(app)
-from models import Contests
+from models import Contests, Juries, Rules
 migrate = Migrate(app, db)
 
 # ----------- OAuth configuration -------------
@@ -68,7 +68,21 @@ def contests():
 
 @app.route('/api/contest/<int:id>', methods=['GET'])
 def contest(id):
-    pass
+    contest = Contests.query.filter_by(id=id).first()
+    if contest is None:
+        return jsonify({
+            "status": "error",
+            "msg": f"Content does not exist with id={id}"
+        })
+    juries = Juries.query.filter_by(contest_id=id).all()
+    rulesObj = Rules.query.filter_by(contest_id=id).first()
+
+    return jsonify({
+        "status": "success",
+        "contest": contest,
+        "juries": juries,
+        "rules": rulesObj.rules if rulesObj != None else defaultRules()
+    }), 200
 
 
 @app.route('/api/contest/create', methods=['POST'])
