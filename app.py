@@ -37,7 +37,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # ---------- Database configuration -----------
 db = SQLAlchemy(app)
-from models import Contests, Juries, Rules
+from models import Contests, Juries, Rules, Submission
 migrate = Migrate(app, db)
 
 # ----------- OAuth configuration -------------
@@ -178,6 +178,60 @@ def checkpage():
         "checks": checkStats,
         "checkAll": checkStatus
     }), 200
+
+
+@app.route('/api/submitpage', methods=['POST'])
+def submitpage():
+    currentUser = get_current_user()
+    if currentUser == None:
+        return permissionDenied()
+
+    # Extracting data
+    d = request.get_json()
+    pageName = d.get("pageName")
+    contestId = d.get("contestId")
+
+    # Checking and getting the contest data
+    contest = Contests.query.filter_by(id=contestId).first()
+    if contest == None:
+        return jsonify({
+            "status": "error",
+            "msg": "Contest does not exist."
+        }), 400
+
+    # Checking and getting rules data
+    rules = None
+    rulesObj = Rules.query.filter_by(contest_id=contest.id).first()
+    if rulesObj != None:
+        rules = rulesObj.rules
+    else:
+        rules = defaultRules()
+
+    analyzeData = AnalyzePage(contest, pageName, currentUser).run()
+    if analyzeData is None or analyzeData is False:
+        return somethingWrong()
+
+    checkStats = checksWithRules( contest, rules, analyzeData, currentUser)
+    checkStatus = not(False in [ i["check"] for i in checkStats.values() ])
+
+    if checkStatus:
+        submission = Submission(
+            contest_id=contest.id,
+            article_name=pageName,
+            submission_by=currentUser,
+            submission_stats=checkStats
+        )
+        db.session.add(submission)
+        db.session.commit()
+
+        return jsonify({
+            "status": "success"
+        }), 200
+    else:
+        return jsonify({
+            "status": "error",
+            "msg": "Page does not satisfy the current rules."
+        }), 400
 
 
 @app.route('/api/addjury', methods=['POST'])
