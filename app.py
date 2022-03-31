@@ -74,7 +74,7 @@ def contest(id):
         return jsonify({
             "status": "error",
             "msg": f"Content does not exist with id={id}"
-        })
+        }), 400
     juries = Juries.query.filter_by(contest_id=id).all()
     rulesObj = Rules.query.filter_by(contest_id=id).first()
 
@@ -138,7 +138,51 @@ def editContest(id):
 
 @app.route('/api/addjury', methods=['POST'])
 def addJury():
-    pass
+    currentUser = get_current_user()
+    if currentUser == None:
+        return permissionDenied()
+
+    # Extracting data
+    d = request.get_json()
+    contest_id = d.get("contest_id")
+    jury_name = d.get("jury_name")
+
+    # Checking necessary data
+    if None in (contest_id, jury_name):
+        return missingData()
+
+    if "" in (contest_id, jury_name):
+        return missingData()
+
+    # Check the contest owner
+    contest = Contests.query.filter_by(id=contest_id).first()
+
+    if contest == None:
+        return jsonify({
+            "status": "error",
+            "msg": "Contest does not exist."
+        }), 400
+
+    if contest.created_by != currentUser:
+        return badUser()
+
+    currentJuries = Juries.query.filter_by(contest_id=contest.id).all()
+    if jury_name in [i.username for i in currentJuries]:
+        return jsonify({
+            "status": "error",
+            "msg": "Jury already exist."
+        }), 400
+
+    new_jury = Juries(
+        contest_id=contest.id,
+        username=jury_name
+    )
+    db.session.add(new_jury)
+    db.session.commit()
+
+    return jsonify({
+        "status": "success"
+    }), 201
 
 
 @app.route('/api/editrules', methods=['POST'])
@@ -197,12 +241,13 @@ def editRules():
         "status": "success"
     }), 201
 
+
 @app.route('/api/profile')
 def api_profile():
     return jsonify({
         "logged": get_current_user() is not None,
         "username": get_current_user()
-    })
+    }), 200
 
 
 #############################
