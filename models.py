@@ -65,7 +65,7 @@ class Rules(db.Model):
     def __repr__(self):
         return '<Rule {}>'.format(self.id)
 
-
+@dataclass
 class Submission(db.Model):
     id: str
     contest_id: str
