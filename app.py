@@ -5,6 +5,8 @@ from flask_sqlalchemy import SQLAlchemy
 import mwoauth
 import os
 from dateutil import parser
+from analyze import AnalyzePage
+from checks import checksWithRules
 
 from utils import _str, missingData, permissionDenied, \
     somethingWrong, defaultRules, badUser
@@ -134,6 +136,48 @@ def createContest():
 @app.route('/api/contest/<int:id>/edit', methods=['POST'])
 def editContest(id):
     pass
+
+
+@app.route('/api/checkpage', methods=['GET'])
+def checkpage():
+    currentUser = get_current_user()
+    if currentUser == None:
+        return permissionDenied()
+
+    # Extracting data
+    d = request.args
+    pageName = d.get("pageName")
+    contestId = d.get("contestId")
+
+    # Checking and getting the contest data
+    contest = Contests.query.filter_by(id=contestId).first()
+    if contest == None:
+        return jsonify({
+            "status": "error",
+            "msg": "Contest does not exist."
+        }), 400
+
+    # Checking and getting rules data
+    rules = None
+    rulesObj = Rules.query.filter_by(contest_id=contest.id).first()
+    if rulesObj != None:
+        rules = rulesObj.rules
+    else:
+        rules = defaultRules()
+
+    analyzeData = AnalyzePage(contest, pageName, currentUser).run()
+    if analyzeData is None or analyzeData is False:
+        return somethingWrong()
+
+    checkStats = checksWithRules( contest, rules, analyzeData, currentUser)
+    checkStatus = not(False in [ i["check"] for i in checkStats.values() ])
+
+
+    return jsonify({
+        "status": "success",
+        "checks": checkStats,
+        "checkAll": checkStatus
+    }), 200
 
 
 @app.route('/api/addjury', methods=['POST'])
