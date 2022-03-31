@@ -6,7 +6,8 @@ import mwoauth
 import os
 from dateutil import parser
 
-from utils import _str, missingData, permissionDenied, somethingWrong, defaultRules
+from utils import _str, missingData, permissionDenied, \
+    somethingWrong, defaultRules, badUser
 
 
 app = Flask(__name__)
@@ -139,6 +140,62 @@ def editContest(id):
 def addJury():
     pass
 
+
+@app.route('/api/editrules', methods=['POST'])
+def editRules():
+    currentUser = get_current_user()
+    if currentUser == None:
+        return permissionDenied()
+
+    # Extracting data
+    d = request.get_json()
+    contest_id = d.get("contest_id")
+    rules = d.get("rules")
+
+    # Checking necessary data
+    if None in (contest_id, rules):
+        return missingData()
+
+    if "" in (contest_id, rules):
+        return missingData()
+
+    requiredKeys = [
+        'authorOnly', 'creationInRange', 'minImages',
+        'minTemplates', 'namespaceMain', 'pageSize',
+        'pageSizeBySubmitter', 'submitterRegDate',
+        'minCategories', 'minLangLinks'
+    ]
+    if set(rules.keys()) != set(requiredKeys):
+        return missingData()
+
+    # Check the contest owner
+    contest = Contests.query.filter_by(id=contest_id).first()
+
+    if contest == None:
+        return jsonify({
+            "status": "error",
+            "msg": "Contest does not exist."
+        }), 400
+
+    if contest.created_by != currentUser:
+        return badUser()
+
+    # If rules exist then update them, otherwise create new
+    currentRules = Rules.query.filter_by(contest_id=contest_id).first()
+    if currentRules == None:
+        newRules = Rules(
+            contest_id=contest_id,
+            rules=rules
+        )
+        db.session.add(newRules)
+        db.session.commit()
+    else:
+        currentRules.rules = rules
+        db.session.commit()
+
+    return jsonify({
+        "status": "success"
+    }), 201
 
 @app.route('/api/profile')
 def api_profile():
